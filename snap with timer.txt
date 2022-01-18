@@ -1,0 +1,87 @@
+import cv2
+import time
+import HandTrackingModule as htm
+import math
+
+
+################################
+wCam, hCam = 640, 480                # or 1280 and 720
+################################
+
+cap=cv2.VideoCapture(0)
+cap.set(3, wCam)                               #setting outputscreen width and height at parameter no 3 and 4
+cap.set(4, hCam)
+pTime = 0
+timer=3                                        #timer of taking image
+cur=0
+prev=0
+
+
+detector = htm.handDetector(detectionCon=0.7) # making of object of our class from the module htm
+                                              # and to not detect the smaller hands image con value is increased
+
+
+
+
+while True:
+    success, img = cap.read()
+    img = detector.findHands(img)                # to get hand connections of the image we are capturing and returing the result
+    lmList,lmList1 = detector.findPosition(img, draw=False)  #draw is for highliting a particular landmark thats why here is false
+     #draw is for highliting a particular landmark thats why here is false
+                                                     #lmlist will store 2 axis values of all id no of single hand
+    if len(lmList) != 0:
+      # print(lmList[4],lmList[8])
+      x1, y1 = lmList[4][1], lmList[4][2]        # getting x and y value of thumb tip
+      x2, y2 = lmList[8][1], lmList[8][2]        #getting x and y values of index finger tip of same hands
+    if len(lmList1) != 0:                        #lmlist1 will store 2 axis values of all id no of single hand
+      # print(lmList[4],lmList[8])
+      x11, y11 = lmList1[4][1], lmList1[4][2]  # getting x and y value of thumb tip
+      x22, y22 = lmList1[8][1], lmList1[8][2]
+
+      cx, cy = (x2 + x11) // 2, (y11 + y2) // 2    # to get the center of the two tips
+      cx1, cy1 = (x1 + x22) // 2, (y22 + y1) // 2    # to get the center of the two tips
+
+      cv2.circle(img, (x1, y1), 15, (255, 0, 0), cv2.FILLED) # to highlight thumb tip
+      cv2.circle(img, (x2, y2), 15, (255, 0, 0), cv2.FILLED) # to highlight index finger tip
+      # cv2.line(img, (x2, y2), (x11, y11), (139, 0, 255), 3)    # to draw a line between two tips
+      cv2.circle(img, (cx, cy), 15, (255, 0, 255), cv2.FILLED) # to highlight the center of the line
+      cv2.circle(img, (cx1, cy1), 15, (255, 0, 255), cv2.FILLED) # to highlight the center of the line
+
+      length = math.hypot(x2 - x11, y2 - y11)           # to get the length of the line
+      length1 = math.hypot(x1 - x22, y1 - y22)           # to get the length of the line
+
+
+
+
+
+      if length < 40 and length1<40:                               # if lenth is less center of line changes colour like a press of a button
+          cv2.circle(img, (cx, cy), 15, (0, 255, 0), cv2.FILLED)
+          cv2.circle(img, (cx1, cy1), 15, (0, 255, 0), cv2.FILLED)
+          print("you have done it")                                #eligible for taking snap
+          prev=time.time()
+          while timer>0:
+                ret,img1=cap.read()
+               # cv2.putText(img1,str(timer),(200,250),cv2.FONT_HERSHEY_SIMPLEX,7,(0,255,255),4,cv2.LINE_AA)
+                cv2.imshow('a',img1)
+                cv2.waitKey(125)
+                cur=time.time()
+                if cur-prev>=1:
+                    prev=cur
+                    timer=timer-1
+          else:
+                ret,img=cap.read()
+                cv2.imshow('your pose',img1)
+                cv2.waitKey(2000)
+                cv2.imwrite('pose.jpg',img1)
+                timer=3
+
+
+
+    cTime = time.time()
+    fps = 1 / (cTime - pTime)
+    pTime = cTime
+    cv2.putText(img, f'FPS: {int(fps)}', (40, 50), cv2.FONT_HERSHEY_COMPLEX,
+                1, (0, 0, 255), 1)
+
+    cv2.imshow("Img",img)
+    cv2.waitKey(1)
